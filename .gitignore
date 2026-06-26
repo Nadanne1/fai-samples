@@ -1,9 +1,4 @@
-components/.DS_Store
-docker/.DS_Store
 .DS_Store
-_assets/*.bkp
-backup/
-checksums/
+__pycache__/
+*.pyc
 .env
-.venv
-.!*
