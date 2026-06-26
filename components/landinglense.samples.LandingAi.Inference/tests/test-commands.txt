@@ -1,0 +1,5 @@
+curl http://localhost:8000/status 
+
+curl -X 'POST' 'http://localhost:8000/images' -H 'accept: */*' -H 'Content-Type: multipart/form-data' -F 'file=@model/images/test.5jqkq5ag.jpg;type=image/jpeg' -F 'file_url=' -F 'metadata='
+
+/Users/yongjiff/Documents/dev/landingai-greengrass-samples/components/landinglense.samples.LandingAi.Inference/tests/model/images/test.5jqkq5ag.jpg

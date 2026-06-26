@@ -1,0 +1,71 @@
+---
+RecipeFormatVersion: "2020-01-25"
+ComponentName: "{COMPONENT_NAME}"
+ComponentVersion: "{COMPONENT_VERSION}"
+ComponentDescription: "Edge predictor"
+ComponentPublisher: "{COMPONENT_AUTHOR}"
+ComponentConfiguration:
+  DefaultConfiguration:
+    LogLevel: "INFO"
+    TopicPrefix: "landinglens"
+    InferenceHost: "127.0.0.1"
+    InferencePort: 8000
+    accessControl:
+      aws.greengrass.ipc.mqttproxy:
+        landinglens.mqtt:IoTCorePubSub:1:
+          policyDescription: Publish and subscribe to any topic
+          operations:
+            - aws.greengrass#PublishToIoTCore
+            - aws.greengrass#SubscribeToIoTCore
+          resources:
+            - "*"
+ComponentDependencies:
+  landinglense.samples.LandingAi.Inference:
+    VersionRequirement: ">=1.0.0 <2.0.0"
+    DependencyType: HARD
+Manifests:
+  - Platform:
+      os: linux
+    Artifacts:
+      - URI: "s3://BUCKET_NAME/COMPONENT_NAME/COMPONENT_VERSION/main-artifact.zip"
+        Unarchive: ZIP
+    Lifecycle:
+      Setenv:
+        ARTIFACT_NAME: "main-artifact"
+        VENV_PATH: ".venv"
+      Install:
+        RequiresPrivilege: true
+        Timeout: 300
+        Script: |
+          #!/bin/bash
+          set -e
+
+          # Check and install python3-venv if needed
+          if ! dpkg -l | grep -q python3-venv; then
+            apt-get update
+            apt-get install -y python3-venv
+          fi
+
+          # Setup Python environment
+          python3 -m venv $VENV_PATH
+          . "$VENV_PATH/bin/activate"
+          pip install -r {artifacts:decompressedPath}/$ARTIFACT_NAME/requirements.txt
+
+          echo "Installation completed successfully"
+      Run:
+        RequiresPrivilege: true
+        Script: |
+          #!/bin/bash
+          set -e
+
+          # Activate virtual environment
+          . "$VENV_PATH/bin/activate"
+
+          # Set environment variables
+          export LOG_LEVEL={configuration:/LogLevel}
+
+          python3 -u {artifacts:decompressedPath}/$ARTIFACT_NAME/main.py \
+            --device-id $AWS_IOT_THING_NAME \
+            --topic-prefix {configuration:/TopicPrefix} \
+            --inference-host {configuration:/InferenceHost} \
+            --inference-port {configuration:/InferencePort}

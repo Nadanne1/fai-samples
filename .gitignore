@@ -1,0 +1,9 @@
+components/.DS_Store
+docker/.DS_Store
+.DS_Store
+_assets/*.bkp
+backup/
+checksums/
+.env
+.venv
+.!*

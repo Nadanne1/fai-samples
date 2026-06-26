@@ -1,0 +1,26 @@
+services:
+  landinglens:
+    image: public.ecr.aws/landing-ai/deploy:latest
+    network_mode: bridge
+    ports:
+      - "${PORT}:8000"
+    environment:
+      SVCUID: ${SVCUID}
+      AWS_GG_NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT: ${AWS_GG_NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT}
+      PORT: ${PORT}
+    restart: always
+    container_name: ll_inference
+    volumes:
+      - ${AWS_GG_NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT}:${AWS_GG_NUCLEUS_DOMAIN_SOCKET_FILEPATH_FOR_COMPONENT}
+      - ${MODEL_VOLUME_PATH}:/data/model
+    command:
+      - run-local-model
+      - --model
+      - /data/model/bundle_${LOCAL_MODEL_ID}.zip
+      - ${ADDITIONAL_ARGS}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

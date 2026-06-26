@@ -1,0 +1,3 @@
+landingai
+pillow
+awsiotsdk>=1.17.0

@@ -1,0 +1,40 @@
+---
+RecipeFormatVersion: "2020-01-25"
+ComponentName: "{COMPONENT_NAME}"
+ComponentVersion: "{COMPONENT_VERSION}"
+ComponentDescription: "LandingAI Edge Runtime."
+ComponentPublisher: "{COMPONENT_AUTHOR}"
+ComponentConfiguration:
+  DefaultConfiguration:
+    LogLevel: "INFO"
+    ModelId: "25e90c58-2179-47ea-8821-5f03733007ff"
+    ModelVolumePath: "/data/downloads/model/aircraft_movement"
+    Port: 8000
+    AdditionalArgs: ""
+ComponentDependencies:
+  aws.greengrass.DockerApplicationManager:
+    VersionRequirement: ~2.0.0
+  aws.greengrass.TokenExchangeService:
+    VersionRequirement: ~2.0.0
+Manifests:
+  - Platform:
+      os: linux
+    Artifacts:
+      - URI: "s3://BUCKET_NAME/COMPONENT_NAME/COMPONENT_VERSION/main-artifact.zip"
+        Unarchive: ZIP
+      - URI: docker:public.ecr.aws/landing-ai/deploy:latest
+    Lifecycle:
+      Setenv:
+        ARTIFACT_NAME: "main-artifact"
+        LOCAL_MODEL_ID: "{configuration:/ModelId}"
+        MODEL_VOLUME_PATH: "{configuration:/ModelVolumePath}"
+        PORT: "{configuration:/Port}"
+        ADDITIONAL_ARGS: "{configuration:/AdditionalArgs}"
+      Run:
+        RequiresPrivilege: true
+        Script: |
+          docker compose -f {artifacts:decompressedPath}/$ARTIFACT_NAME/docker-compose.yaml up
+      Shutdown:
+        RequiresPrivilege: true
+        Script: |
+          docker compose -f {artifacts:decompressedPath}/$ARTIFACT_NAME/docker-compose.yaml down

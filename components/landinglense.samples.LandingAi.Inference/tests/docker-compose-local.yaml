@@ -1,0 +1,23 @@
+services:
+  landinglens:
+    image: ${LANDING_IMAGE:-public.ecr.aws/landing-ai/deploy:latest}
+    network_mode: ${NETWORK_MODE}
+    ports:
+      - "${PORT}:8000"
+    environment:
+      PORT: ${PORT}
+    restart: always
+    container_name: ${CONTAINER_NAME}
+    volumes:
+      - ${MODEL_VOLUME_PATH}:/data/model
+    command:
+      - run-local-model
+      - --model
+      - /data/model/bundle_${LOCAL_MODEL_ID}.zip
+      - ${ADDITIONAL_ARGS}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/status"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
