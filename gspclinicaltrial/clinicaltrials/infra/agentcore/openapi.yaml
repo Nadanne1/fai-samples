@@ -1,0 +1,224 @@
+openapi: "3.0.1"
+info:
+  title: Clinical Trial Screening API
+  description: Tools for AI-driven clinical trial eligibility screening and monitoring
+  version: "2.0.0"
+servers:
+  - url: https://2009xhuxx8.execute-api.us-east-1.amazonaws.com
+paths:
+  /api/patients:
+    get:
+      operationId: listPatients
+      summary: List patients from the clinical trial HealthLake datastore
+      parameters:
+        - name: count
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Patient list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  patients:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+      security:
+        - ApiKeyAuth: []
+
+  /api/trials:
+    get:
+      operationId: listTrials
+      summary: List configured clinical trials
+      responses:
+        "200":
+          description: Trial list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  trials:
+                    type: array
+                    items:
+                      type: object
+      security:
+        - ApiKeyAuth: []
+
+  /api/trial/{trialId}:
+    get:
+      operationId: getTrialDetail
+      summary: Get protocol configuration for a specific trial
+      parameters:
+        - name: trialId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Trial protocol detail
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+        - ApiKeyAuth: []
+
+  /api/patient/{patientId}:
+    get:
+      operationId: getPatientDetail
+      summary: Get FHIR clinical detail for a patient (conditions, medications, labs, allergies, procedures)
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Patient FHIR detail
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+        - ApiKeyAuth: []
+
+  /api/patient/{patientId}/insights:
+    get:
+      operationId: getPatientInsights
+      summary: Get AI-generated patient insights from HealthLake DocumentReference
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: AI patient insights
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+        - ApiKeyAuth: []
+
+  /api/patient/{patientId}/trial-history:
+    get:
+      operationId: getPatientTrialHistory
+      summary: Get screening history for a patient across all trials
+      parameters:
+        - name: patientId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Screening history
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+        - ApiKeyAuth: []
+
+  /screen:
+    post:
+      operationId: screenPatient
+      summary: Run AI eligibility screening for a patient against a trial using FHIR data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - patient_id
+                - trial_id
+              properties:
+                patient_id:
+                  type: string
+                  description: FHIR Patient resource ID
+                trial_id:
+                  type: string
+                  description: Trial ID (e.g. NCT00000001)
+      responses:
+        "200":
+          description: Screening result with eligibility determination
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  session_id:
+                    type: string
+                  patient_id:
+                    type: string
+                  trial_id:
+                    type: string
+                  determination:
+                    type: string
+                    enum: [eligible, ineligible, borderline]
+                  summary:
+                    type: string
+                  criteria_count:
+                    type: integer
+                  criteria_results:
+                    type: array
+                    items:
+                      type: object
+      security:
+        - ApiKeyAuth: []
+
+  /escalations:
+    get:
+      operationId: listEscalations
+      summary: List borderline cases pending PI review from the escalation queue
+      parameters:
+        - name: max_messages
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Pending escalations
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+        - ApiKeyAuth: []
+
+  /api/analytics:
+    get:
+      operationId: getAnalytics
+      summary: Get aggregate screening analytics — totals by trial and eligibility determination
+      responses:
+        "200":
+          description: Analytics summary
+          content:
+            application/json:
+              schema:
+                type: object
+      security:
+        - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key

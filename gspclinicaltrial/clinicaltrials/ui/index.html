@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clinical Trial Screening Dashboard</title>
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #242836; --border: #2e3348;
+  --text: #e4e6f0; --text2: #8b8fa8; --accent: #6366f1; --accent2: #818cf8;
+  --green: #22c55e; --yellow: #eab308; --red: #ef4444; --orange: #f97316;
+  --blue: #3b82f6; --cyan: #06b6d4;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; }
+.header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+.header h1 { font-size: 18px; font-weight: 600; }
+.header .badge { background: var(--accent); color: white; padding: 2px 10px; border-radius: 12px; font-size: 12px; }
+.header .stats { margin-left: auto; display: flex; gap: 20px; font-size: 13px; color: var(--text2); }
+.header .stats span { color: var(--accent2); font-weight: 600; }
+.layout { display: grid; grid-template-columns: 340px 1fr 320px; grid-template-rows: 1fr; height: calc(100vh - 52px); overflow: hidden; }
+/* Left Panel - Patient List */
+.panel { background: var(--surface); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.panel-header { padding: 12px 16px; border-bottom: 1px solid var(--border); font-size: 13px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; justify-content: space-between; }
+.panel-header .count { background: var(--surface2); padding: 1px 8px; border-radius: 10px; font-size: 11px; }
+.search { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.search input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; color: var(--text); font-size: 13px; outline: none; }
+.search input:focus { border-color: var(--accent); }
+.patient-list { flex: 1; overflow-y: auto; }
+.patient-item { padding: 10px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.15s; display: flex; align-items: center; gap: 10px; }
+.patient-item:hover { background: var(--surface2); }
+.patient-item.selected { background: rgba(99,102,241,0.15); border-left: 3px solid var(--accent); }
+.patient-item.in-queue { border-left: 3px solid var(--green); }
+.patient-item.in-queue.urgent { border-left-color: var(--orange); }
+.patient-avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; flex-shrink: 0; }
+.patient-avatar.male { background: rgba(59,130,246,0.2); color: var(--blue); }
+.patient-avatar.female { background: rgba(236,72,153,0.2); color: #ec4899; }
+.patient-info { flex: 1; min-width: 0; }
+.patient-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.patient-meta { font-size: 11px; color: var(--text2); margin-top: 2px; }
+.patient-badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: 600; flex-shrink: 0; }
+.patient-badge.queue { background: rgba(34,197,94,0.15); color: var(--green); }
+.patient-badge.urgent { background: rgba(249,115,22,0.15); color: var(--orange); }
+.patient-badge.screened { background: rgba(99,102,241,0.15); color: var(--accent2); }
+/* Center Panel - Chat + Screening */
+.center { display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+.trial-selector { padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.trial-selector select { background: var(--surface2); border: 1px solid var(--border); color: var(--text); padding: 6px 12px; border-radius: 6px; font-size: 13px; }
+.trial-selector button { background: var(--accent); color: white; border: none; padding: 8px 20px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; transition: opacity 0.15s; }
+.trial-selector button:hover { opacity: 0.9; }
+.trial-selector button:disabled { opacity: 0.4; cursor: not-allowed; }
+.chat-area { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-height: 0; }
+.chat-input { padding: 12px 16px; background: var(--surface); border-top: 1px solid var(--border); display: flex; gap: 8px; flex-shrink: 0; }
+.chat-msg { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 13px; line-height: 1.5; animation: fadeIn 0.3s; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.chat-msg.agent { background: var(--surface); border: 1px solid var(--border); align-self: flex-start; }
+.chat-msg.system { background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); align-self: center; text-align: center; font-size: 12px; color: var(--accent2); }
+.chat-msg.result { background: var(--surface); border: 1px solid var(--border); align-self: stretch; }
+.chat-msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); color: var(--red); align-self: center; }
+.result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }
+.result-card { background: var(--surface2); padding: 8px 12px; border-radius: 6px; }
+.result-card .label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.result-card .value { font-size: 16px; font-weight: 600; margin-top: 2px; }
+.result-card .value.eligible { color: var(--green); }
+.result-card .value.ineligible { color: var(--red); }
+.result-card .value.borderline { color: var(--yellow); }
+.result-card .value.indeterminate { color: var(--text2); }
+.empty-state { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; color: var(--text2); }
+.empty-state .icon { font-size: 48px; opacity: 0.3; }
+.empty-state p { font-size: 14px; }
+/* Right Panel - Agent Trace */
+.trace-panel { background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; overflow: hidden; }
+.trace-list { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
+.trace-node { padding: 8px 12px; margin-bottom: 4px; border-radius: 6px; font-size: 12px; display: flex; align-items: flex-start; gap: 8px; animation: fadeIn 0.3s; }
+.trace-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 4px; flex-shrink: 0; }
+.trace-dot.active { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); animation: pulse 1s infinite; }
+.trace-dot.done { background: var(--green); }
+.trace-dot.pending { background: var(--border); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+.trace-node .node-name { font-weight: 600; color: var(--cyan); }
+.trace-node .node-desc { color: var(--text2); margin-top: 2px; }
+.trace-node .node-time { color: var(--text2); font-size: 10px; margin-top: 2px; }
+/* Flow Diagram */
+.flow-diagram { padding: 12px; border-top: 1px solid var(--border); flex-shrink: 0; max-height: 280px; overflow-y: auto; }
+.flow-diagram h4 { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.flow-nodes { display: flex; flex-direction: column; gap: 2px; align-items: center; }
+.flow-node { background: var(--surface2); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; font-size: 10px; width: 100%; text-align: center; transition: all 0.3s; }
+.flow-node.active { border-color: var(--cyan); background: rgba(6,182,212,0.1); color: var(--cyan); }
+.flow-node.done { border-color: var(--green); background: rgba(34,197,94,0.1); color: var(--green); }
+.flow-arrow { color: var(--border); font-size: 10px; }
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+/* Tab buttons */
+.tab-btn { background: transparent; border: 1px solid var(--border); color: var(--text2); padding: 4px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; }
+.tab-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+/* Analytics */
+.stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.stat-label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.stat-value { font-size: 28px; font-weight: 700; margin-top: 4px; }
+.an-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+.an-panel-title { font-size: 13px; font-weight: 600; color: var(--text2); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+.an-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.an-table th { text-align: left; padding: 8px; color: var(--text2); border-bottom: 1px solid var(--border); font-size: 11px; text-transform: uppercase; }
+.an-table td { padding: 8px; border-bottom: 1px solid var(--border); }
+.an-bar { border-radius: 4px 4px 0 0; min-width: 40px; text-align: center; font-size: 11px; font-weight: 600; padding-top: 4px; transition: height 0.5s; }
+/* Modal */
+.modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; }
+.modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 700px; max-height: 80vh; display: flex; flex-direction: column; }
+.modal-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.modal-header h2 { font-size: 16px; font-weight: 600; }
+.modal-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+.modal-tab { background: none; border: none; color: var(--text2); padding: 10px 20px; font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; }
+.modal-tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+.modal-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.info-card { background: var(--surface2); border-radius: 6px; padding: 10px 14px; }
+.info-card .label { font-size: 10px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+.info-card .val { font-size: 14px; margin-top: 2px; }
+.info-section { margin-top: 16px; }
+.info-section h4 { font-size: 12px; color: var(--text2); text-transform: uppercase; margin-bottom: 8px; }
+.info-list-item { background: var(--surface2); border-radius: 4px; padding: 8px 12px; margin-bottom: 4px; font-size: 13px; }
+.det-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+.det-badge.eligible { background: rgba(34,197,94,0.15); color: var(--green); }
+.det-badge.ineligible { background: rgba(239,68,68,0.15); color: var(--red); }
+.det-badge.borderline { background: rgba(234,179,8,0.15); color: var(--yellow); }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🏥 Clinical Trial Screening</h1>
+  <span class="badge">LIVE</span>
+  <div style="display:flex;gap:4px;margin-left:16px;">
+    <button class="tab-btn active" onclick="showView('main')">Screening</button>
+    <button class="tab-btn" onclick="showView('analytics')">Analytics</button>
+    <button class="tab-btn" onclick="showView('builder')">Trial Builder</button>
+  </div>
+  <div class="stats">
+    <div>Patients: <span id="stat-patients">-</span></div>
+    <div>In Queue: <span id="stat-queue">-</span></div>
+    <div>Trials: <span id="stat-trials">-</span></div>
+  </div>
+</div>
+<div class="layout" id="main-view">
+  <!-- Left: Patient List -->
+  <div class="panel">
+    <div class="panel-header">Patients <span class="count" id="patient-count">0</span></div>
+    <div class="search"><input type="text" id="patient-search" placeholder="Search patients..."></div>
+    <div class="patient-list" id="patient-list"></div>
+  </div>
+  <!-- Center: Chat -->
+  <div class="center">
+    <div class="trial-selector">
+      <select id="trial-select"><option value="">Select trial...</option></select>
+      <button id="start-screening" disabled>Start Screening</button>
+      <span id="selected-patient-name" style="margin-left:auto;font-size:13px;color:var(--text2)">No patient selected</span>
+    </div>
+    <div class="chat-area" id="chat-area">
+      <div class="empty-state"><div class="icon">🔬</div><p>Select a patient and trial to begin screening</p></div>
+    </div>
+    <div class="chat-input" id="chat-input-area" style="display:none;">
+      <input type="text" id="chat-input" placeholder="Type your response..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;outline:none;" disabled>
+      <button id="chat-send" style="background:var(--accent);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;" disabled>Send</button>
+    </div>
+  </div>
+  <!-- Right: Trace -->
+  <div class="trace-panel">
+    <div class="panel-header">Agent Trace</div>
+    <div class="trace-list" id="trace-list">
+      <div style="padding:16px;color:var(--text2);font-size:12px;text-align:center">No active session</div>
+    </div>
+    <div class="flow-diagram">
+      <h4>Screening Flow</h4>
+      <div class="flow-nodes" id="flow-nodes"></div>
+    </div>
+  </div>
+</div>
+<!-- Analytics View -->
+<div id="analytics-view" style="display:none;height:calc(100vh - 52px);overflow-y:auto;padding:24px;">
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;">
+    <div class="stat-card"><div class="stat-label">Total Screenings</div><div class="stat-value" id="an-total">0</div></div>
+    <div class="stat-card" style="border-left:3px solid var(--green)"><div class="stat-label">Eligible</div><div class="stat-value" style="color:var(--green)" id="an-eligible">0</div></div>
+    <div class="stat-card" style="border-left:3px solid var(--red)"><div class="stat-label">Ineligible</div><div class="stat-value" style="color:var(--red)" id="an-ineligible">0</div></div>
+    <div class="stat-card" style="border-left:3px solid var(--yellow)"><div class="stat-label">Borderline</div><div class="stat-value" style="color:var(--yellow)" id="an-borderline">0</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;">
+    <div class="an-panel"><div class="an-panel-title">Eligibility Distribution</div><div id="an-chart" style="display:flex;align-items:flex-end;gap:8px;height:160px;padding:16px 0;"></div></div>
+    <div class="an-panel"><div class="an-panel-title">By Trial</div><div id="an-by-trial"></div></div>
+  </div>
+  <div class="an-panel"><div class="an-panel-title">Recent Screenings</div><table class="an-table" id="an-recent"><thead><tr><th>Date</th><th>Patient</th><th>Trial</th><th>Result</th><th>Session</th></tr></thead><tbody></tbody></table></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+    <div class="stat-card"><div class="stat-label">Audit Records</div><div class="stat-value" id="an-audit">0</div></div>
+    <div class="stat-card"><div class="stat-label">Queue Depth</div><div class="stat-value" id="an-queue">0</div></div>
+  </div>
+</div>
+<!-- Trial Builder View -->
+<div id="builder-view" style="display:none;height:calc(100vh - 52px);overflow:hidden;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;height:100%;">
+    <!-- Left: Chat with agent -->
+    <div style="display:flex;flex-direction:column;border-right:1px solid var(--border);">
+      <div class="panel-header">Trial Builder Agent</div>
+      <div id="builder-chat" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:10px;min-height:0;">
+        <div class="empty-state"><div class="icon">🧪</div><p>Start a conversation to create a new trial</p></div>
+      </div>
+      <div style="padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+        <input type="text" id="builder-input" placeholder="Describe your clinical trial..." style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px 14px;color:var(--text);font-size:14px;outline:none;">
+        <button id="builder-send" onclick="builderSend()" style="background:var(--accent);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;">Send</button>
+      </div>
+    </div>
+    <!-- Right: Questionnaire editor -->
+    <div style="display:flex;flex-direction:column;overflow:hidden;">
+      <div class="panel-header">Questionnaire Editor <span class="count" id="q-item-count">0</span></div>
+      <div id="builder-editor" style="flex:1;overflow-y:auto;padding:16px;min-height:0;">
+        <div style="color:var(--text2);text-align:center;padding:40px 20px;font-size:13px;">
+          The questionnaire will appear here once the agent gathers enough trial details.
+          Standard template fields will be pre-populated.
+        </div>
+      </div>
+      <div style="padding:12px 16px;background:var(--surface);border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;">
+        <button id="builder-create-btn" onclick="builderCreate()" disabled style="background:var(--green);color:white;border:none;padding:10px 20px;border-radius:8px;font-size:14px;cursor:pointer;flex:1;opacity:0.4;">Create Trial</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Trial Detail Modal -->
+<div id="trial-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-content" style="width:800px;">
+    <div class="modal-header">
+      <h2 id="trial-modal-title">Trial</h2>
+      <button onclick="document.getElementById('trial-modal').style.display='none'" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="showTrialTab('overview',this)">Overview</button>
+      <button class="modal-tab" onclick="showTrialTab('criteria',this)">Eligibility Criteria</button>
+      <button class="modal-tab" onclick="showTrialTab('screenings',this)">Screenings</button>
+      <button class="modal-tab" onclick="showTrialTab('failures',this)">Failure Analysis</button>
+    </div>
+    <div id="trial-tab-overview" class="modal-body"></div>
+    <div id="trial-tab-criteria" class="modal-body" style="display:none;"></div>
+    <div id="trial-tab-screenings" class="modal-body" style="display:none;"></div>
+    <div id="trial-tab-failures" class="modal-body" style="display:none;"></div>
+  </div>
+</div>
+<!-- Patient Detail Modal -->
+<div id="patient-modal" class="modal-overlay" style="display:none;" onclick="if(event.target===this)closePatientModal()">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2 id="modal-patient-name">Patient</h2>
+      <button onclick="closePatientModal()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div class="modal-tabs">
+      <button class="modal-tab active" onclick="showModalTab('info',this)">Patient Info</button>
+      <button class="modal-tab" onclick="showModalTab('history',this)">Trial History</button>
+    </div>
+    <div id="modal-tab-info" class="modal-body"></div>
+    <div id="modal-tab-history" class="modal-body" style="display:none;"></div>
+  </div>
+</div>
+<script>
+const API = '';
+let patients = [], queueMap = {}, trials = [], selectedPatient = null;
+let currentSessionId = null, chatActive = false;
+
+const FLOW_NODES = ['load_patient','load_questionnaire','ask_question','validate_response','check_discrepancy','check_enable_when','resolve_eligibility','finalize_screening'];
+
+function initFlowDiagram() {
+  const c = document.getElementById('flow-nodes');
+  c.innerHTML = FLOW_NODES.map((n,i) => {
+    const label = n.replace(/_/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+    return `<div class="flow-node" id="flow-${n}">${label}</div>` + (i<FLOW_NODES.length-1?'<div class="flow-arrow">↓</div>':'');
+  }).join('');
+}
+
+async function loadPatients() {
+  const r = await fetch(`${API}/api/patients?count=50`);
+  const d = await r.json();
+  patients = d.patients;
+  document.getElementById('stat-patients').textContent = d.total;
+  document.getElementById('patient-count').textContent = patients.length;
+  renderPatients();
+}
+
+async function loadQueue() {
+  const r = await fetch(`${API}/api/queue`);
+  const d = await r.json();
+  document.getElementById('stat-queue').textContent = d.depth;
+  queueMap = {};
+  d.messages.forEach(m => { queueMap[m.patientId] = {trialId:m.trialId, priority:m.priority}; });
+  renderPatients();
+}
+
+async function loadTrials() {
+  const r = await fetch(`${API}/api/trials`);
+  const d = await r.json();
+  trials = d.trials;
+  document.getElementById('stat-trials').textContent = trials.length;
+  const sel = document.getElementById('trial-select');
+  sel.innerHTML = '<option value="">Select trial...</option>';
+  trials.forEach(t => { sel.innerHTML += `<option value="${t.trialId}">${t.trialId} — ${t.title}</option>`; });
+}
+
+function renderPatients(filter='') {
+  const list = document.getElementById('patient-list');
+  let filtered = patients.filter(p => !filter || p.name.toLowerCase().includes(filter.toLowerCase()) || p.id.includes(filter));
+  filtered.sort((a,b) => { const aq=queueMap[a.id]?1:0, bq=queueMap[b.id]?1:0; return aq!==bq?bq-aq:a.name.localeCompare(b.name); });
+  list.innerHTML = filtered.map(p => {
+    const q = queueMap[p.id], isSel = selectedPatient && selectedPatient.id===p.id;
+    const cls = ['patient-item', isSel?'selected':'', q?'in-queue':'', q&&q.priority==='urgent'?'urgent':''].filter(Boolean).join(' ');
+    const badge = q ? `<span class="patient-badge ${q.priority==='urgent'?'urgent':'queue'}">${q.priority==='urgent'?'⚡ URGENT':'● QUEUED'} ${q.trialId}</span>` : '';
+    const age = p.birthDate ? Math.floor((Date.now()-new Date(p.birthDate))/31557600000) : '?';
+    return `<div class="${cls}" onclick="selectPatient('${p.id}')"><div class="patient-avatar ${p.gender}">${p.name.charAt(0)}</div><div class="patient-info"><div class="patient-name">${p.name||p.id.slice(0,8)}</div><div class="patient-meta">${p.gender} · ${age}y · ${p.id.slice(0,8)}...</div></div>${badge}<button onclick="event.stopPropagation();openPatientModal('${p.id}')" style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:14px;padding:4px;" title="View patient details">ℹ️</button></div>`;
+  }).join('');
+}
+
+function selectPatient(id) {
+  selectedPatient = patients.find(p=>p.id===id);
+  document.getElementById('selected-patient-name').textContent = selectedPatient ? selectedPatient.name : 'No patient selected';
+  const q = queueMap[id];
+  if (q) document.getElementById('trial-select').value = q.trialId;
+  document.getElementById('start-screening').disabled = !selectedPatient;
+  renderPatients(document.getElementById('patient-search').value);
+}
+
+function addMsg(type, content) {
+  const area = document.getElementById('chat-area');
+  if (area.querySelector('.empty-state')) area.innerHTML = '';
+  const div = document.createElement('div');
+  div.className = `chat-msg ${type}`;
+  div.innerHTML = content;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+}
+
+function setFlowActive(node) {
+  document.querySelectorAll('.flow-node.active').forEach(n=>n.className='flow-node done');
+  const el = document.getElementById(`flow-${node}`);
+  if (el) el.className = 'flow-node active';
+}
+
+function addTrace(node, desc, status='done') {
+  const list = document.getElementById('trace-list');
+  if (list.querySelector('div[style]')) list.innerHTML = '';
+  list.querySelectorAll('.trace-dot.active').forEach(d=>{d.className='trace-dot done';});
+  const div = document.createElement('div');
+  div.className = 'trace-node';
+  div.innerHTML = `<div class="trace-dot ${status}"></div><div><div class="node-name">${node}</div><div class="node-desc">${desc}</div><div class="node-time">${new Date().toLocaleTimeString()}</div></div>`;
+  list.appendChild(div);
+  list.scrollTop = list.scrollHeight;
+}
+
+async function startScreening() {
+  if (!selectedPatient || chatActive) return;
+  const trialId = document.getElementById('trial-select').value;
+  if (!trialId) return alert('Select a trial first');
+
+  chatActive = true;
+  document.getElementById('start-screening').disabled = true;
+  document.getElementById('chat-area').innerHTML = '';
+  document.getElementById('trace-list').innerHTML = '';
+  document.querySelectorAll('.flow-node').forEach(n=>n.className='flow-node');
+
+  addTrace('load_patient', 'Loading patient FHIR records...'); setFlowActive('load_patient');
+  addMsg('system', `Starting screening for <strong>${selectedPatient.name}</strong> on trial <strong>${trialId}</strong>`);
+
+  try {
+    const resp = await fetch(`${API}/api/chat/start`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({patient_id: selectedPatient.id, trial_id: trialId}),
+    });
+    const data = await resp.json();
+    currentSessionId = data.session_id;
+
+    addTrace('load_questionnaire', `Loaded ${data.questionnaire_items} items`); setFlowActive('load_questionnaire');
+    addTrace('ask_question', 'Interview started', 'active'); setFlowActive('ask_question');
+
+    // Show welcome + first question
+    for (const msg of data.messages) {
+      addMsg('agent', msg.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'));
+    }
+
+    // Enable chat input
+    const input = document.getElementById('chat-input');
+    const send = document.getElementById('chat-send');
+    const inputArea = document.getElementById('chat-input-area');
+    inputArea.style.display = 'flex';
+    input.disabled = false;
+    send.disabled = false;
+    input.focus();
+  } catch (e) {
+    addMsg('error', `Failed to start session: ${e.message}`);
+    chatActive = false;
+    document.getElementById('start-screening').disabled = false;
+  }
+}
+
+async function sendResponse() {
+  const input = document.getElementById('chat-input');
+  const msg = input.value.trim();
+  if (!msg || !currentSessionId) return;
+
+  input.value = '';
+  input.disabled = true;
+  document.getElementById('chat-send').disabled = true;
+
+  // Show patient message
+  addMsg('agent', `<div style="text-align:right;color:var(--accent2)"><strong>You:</strong> ${msg}</div>`);
+
+  try {
+    const resp = await fetch(`${API}/api/chat/respond`, {
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({session_id: currentSessionId, message: msg}),
+    });
+    const data = await resp.json();
+
+    // Show discrepancy if any
+    if (data.discrepancy) {
+      addTrace('check_discrepancy', `${data.discrepancy.severity}: ${data.discrepancy.detail.slice(0,60)}`, 'active');
+      setFlowActive('check_discrepancy');
+    }
+
+    // Show agent reply
+    const agentMsgs = data.messages.filter(m => m.role === 'assistant');
+    for (const m of agentMsgs) {
+      addMsg('agent', m.content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>'));
+    }
+
+    // Update progress
+    if (data.progress) {
+      addTrace('validate_response', `${data.progress.answered}/${data.progress.total} answered`);
+    }
+
+    if (data.status === 'completed') {
+      // Show final result
+      setFlowActive('resolve_eligibility');
+      addTrace('resolve_eligibility', `Determination: ${data.eligibility.determination.toUpperCase()}`);
+      setFlowActive('finalize_screening');
+      addTrace('finalize_screening', 'Session complete', 'done');
+
+      const det = data.eligibility.determination;
+      const results = data.eligibility.criteria_results || [];
+      const passed = results.filter(r=>r.result==='pass').length;
+      const failed = results.filter(r=>r.result==='fail').length;
+
+      addMsg('result', `
+        <strong>Screening Complete</strong>
+        <div class="result-grid">
+          <div class="result-card"><div class="label">Determination</div><div class="value ${det}">${det.toUpperCase()}</div></div>
+          <div class="result-card"><div class="label">Criteria Passed</div><div class="value">${passed}</div></div>
+          <div class="result-card"><div class="label">Criteria Failed</div><div class="value" style="color:${failed?'var(--red)':'var(--green)'}">${failed}</div></div>
+          <div class="result-card"><div class="label">Discrepancies</div><div class="value">${(data.discrepancies||[]).length}</div></div>
+        </div>
+      `);
+
+      // Disable chat
+      document.getElementById('chat-input').disabled = true;
+      document.getElementById('chat-send').disabled = true;
+      chatActive = false;
+      document.getElementById('start-screening').disabled = false;
+      currentSessionId = null;
+    } else {
+      // Re-enable input for next question
+      addTrace('ask_question', `Question ${data.progress.answered+1}`, 'active');
+      setFlowActive('ask_question');
+      input.disabled = false;
+      document.getElementById('chat-send').disabled = false;
+      input.focus();
+    }
+  } catch (e) {
+    addMsg('error', `Error: ${e.message}`);
+    input.disabled = false;
+    document.getElementById('chat-send').disabled = false;
+  }
+}
+
+// Event listeners
+document.getElementById('patient-search').addEventListener('input', e => renderPatients(e.target.value));
+document.getElementById('start-screening').addEventListener('click', startScreening);
+document.getElementById('trial-select').addEventListener('change', () => {
+  document.getElementById('start-screening').disabled = !selectedPatient || !document.getElementById('trial-select').value;
+});
+document.getElementById('chat-send').addEventListener('click', sendResponse);
+document.getElementById('chat-input').addEventListener('keydown', e => { if (e.key === 'Enter') sendResponse(); });
+
+initFlowDiagram();
+Promise.all([loadPatients(), loadQueue(), loadTrials()]);
+
+// === View switching (defined in builder section below) ===
+
+// === Analytics ===
+async function loadAnalytics() {
+  const r = await fetch(`${API}/api/analytics`);
+  const d = await r.json();
+  document.getElementById('an-total').textContent = d.total_screenings;
+  document.getElementById('an-eligible').textContent = d.by_determination.eligible || 0;
+  document.getElementById('an-ineligible').textContent = d.by_determination.ineligible || 0;
+  document.getElementById('an-borderline').textContent = d.by_determination.borderline || 0;
+  document.getElementById('an-audit').textContent = d.audit_records;
+  document.getElementById('an-queue').textContent = d.queue_depth;
+
+  // Bar chart
+  const chart = document.getElementById('an-chart');
+  const max = Math.max(d.by_determination.eligible||1, d.by_determination.ineligible||1, d.by_determination.borderline||1, 1);
+  const bars = [
+    {label:'Eligible', val:d.by_determination.eligible||0, color:'var(--green)'},
+    {label:'Ineligible', val:d.by_determination.ineligible||0, color:'var(--red)'},
+    {label:'Borderline', val:d.by_determination.borderline||0, color:'var(--yellow)'},
+    {label:'Unknown', val:d.by_determination.unknown||0, color:'var(--text2)'},
+  ];
+  chart.innerHTML = bars.map(b => {
+    const h = Math.max((b.val/max)*120, 4);
+    return `<div style="flex:1;text-align:center"><div class="an-bar" style="height:${h}px;background:${b.color}">${b.val}</div><div style="font-size:10px;color:var(--text2);margin-top:4px">${b.label}</div></div>`;
+  }).join('');
+
+  // By trial
+  const trialDiv = document.getElementById('an-by-trial');
+  const trialEntries = Object.entries(d.by_trial);
+  if (trialEntries.length === 0) {
+    trialDiv.innerHTML = '<div style="color:var(--text2);font-size:13px">No trial data yet</div>';
+  } else {
+    trialDiv.innerHTML = trialEntries.map(([tid, stats]) => `
+      <div onclick="openTrialDetail('${tid}')" style="background:var(--surface2);border-radius:6px;padding:10px 14px;margin-bottom:8px;cursor:pointer;transition:border 0.15s;border:1px solid transparent;" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='transparent'">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+          <div style="font-size:13px;font-weight:500">${tid}</div>
+          <span style="font-size:11px;color:var(--accent2)">View details →</span>
+        </div>
+        <div style="display:flex;gap:12px;margin-top:4px;font-size:12px;color:var(--text2)">
+          <span>Total: ${stats.total}</span>
+          <span style="color:var(--green)">✓ ${stats.eligible||0}</span>
+          <span style="color:var(--red)">✗ ${stats.ineligible||0}</span>
+          <span style="color:var(--yellow)">? ${stats.borderline||0}</span>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  // Recent screenings table
+  const tbody = document.querySelector('#an-recent tbody');
+  tbody.innerHTML = d.recent_screenings.map(s => `
+    <tr>
+      <td>${s.authored ? new Date(s.authored).toLocaleDateString() : '-'}</td>
+      <td style="font-family:monospace;font-size:11px">${s.patient_id.slice(0,8)}...</td>
+      <td>${s.trial_id}</td>
+      <td><span class="det-badge ${s.determination}">${s.determination}</span></td>
+      <td style="font-family:monospace;font-size:11px">${s.session_id||'-'}</td>
+    </tr>
+  `).join('');
+}
+
+// === Patient Detail Modal ===
+async function openPatientModal(patientId) {
+  document.getElementById('patient-modal').style.display = 'flex';
+  document.getElementById('modal-tab-info').innerHTML = '<div style="color:var(--text2)">Loading...</div>';
+  document.getElementById('modal-tab-history').innerHTML = '<div style="color:var(--text2)">Loading...</div>';
+  showModalTab('info', document.querySelector('.modal-tab'));
+
+  // Load patient detail
+  const r = await fetch(`${API}/api/patient/${patientId}`);
+  const d = await r.json();
+  const p = d.patient || {};
+  const name = (p.name||[{}])[0];
+  const fullName = `${(name.given||[]).join(' ')} ${name.family||''}`.trim();
+  document.getElementById('modal-patient-name').textContent = fullName || patientId.slice(0,12);
+
+  const age = p.birthDate ? Math.floor((Date.now()-new Date(p.birthDate))/31557600000) : '?';
+  const addr = (p.address||[{}])[0];
+  const addrStr = [addr.line?.[0], addr.city, addr.state].filter(Boolean).join(', ');
+
+  let html = `<div class="info-grid">
+    <div class="info-card"><div class="label">Name</div><div class="val">${fullName}</div></div>
+    <div class="info-card"><div class="label">Gender</div><div class="val">${p.gender||'?'}</div></div>
+    <div class="info-card"><div class="label">Date of Birth</div><div class="val">${p.birthDate||'?'}</div></div>
+    <div class="info-card"><div class="label">Age</div><div class="val">${age}</div></div>
+    <div class="info-card"><div class="label">Address</div><div class="val">${addrStr||'N/A'}</div></div>
+    <div class="info-card"><div class="label">Patient ID</div><div class="val" style="font-family:monospace;font-size:11px">${p.id||patientId}</div></div>
+  </div>`;
+
+  // Conditions
+  if (d.conditions.length) {
+    html += `<div class="info-section"><h4>Conditions (${d.conditions.length})</h4>`;
+    html += d.conditions.map(c => {
+      const display = c.code?.text || c.code?.coding?.[0]?.display || 'Unknown';
+      const status = c.clinicalStatus?.coding?.[0]?.code || '';
+      return `<div class="info-list-item">${display} <span style="color:var(--text2);font-size:11px">${status}</span></div>`;
+    }).join('');
+    html += '</div>';
+  }
+
+  // Medications
+  if (d.medications.length) {
+    html += `<div class="info-section"><h4>Medications (${d.medications.length})</h4>`;
+    html += d.medications.map(m => {
+      const display = m.medicationCodeableConcept?.text || m.medicationCodeableConcept?.coding?.[0]?.display || 'Unknown';
+      return `<div class="info-list-item">${display}</div>`;
+    }).join('');
+    html += '</div>';
+  }
+
+  // Allergies
+  if (d.allergies.length) {
+    html += `<div class="info-section"><h4>Allergies (${d.allergies.length})</h4>`;
+    html += d.allergies.map(a => {
+      const display = a.code?.text || a.code?.coding?.[0]?.display || 'Unknown';
+      return `<div class="info-list-item">${display}</div>`;
+    }).join('');
+    html += '</div>';
+  }
+
+  // Recent Observations
+  if (d.observations.length) {
+    html += `<div class="info-section"><h4>Recent Observations (${d.observations.length})</h4>`;
+    html += d.observations.slice(0,5).map(o => {
+      const display = o.code?.text || o.code?.coding?.[0]?.display || 'Unknown';
+      const val = o.valueQuantity ? `${o.valueQuantity.value} ${o.valueQuantity.unit||''}` : o.valueString || '';
+      const dt = o.effectiveDateTime ? new Date(o.effectiveDateTime).toLocaleDateString() : '';
+      return `<div class="info-list-item"><span>${display}</span> <span style="color:var(--accent2);font-weight:500">${val}</span> <span style="color:var(--text2);font-size:11px">${dt}</span></div>`;
+    }).join('');
+    html += '</div>';
+  }
+
+  document.getElementById('modal-tab-info').innerHTML = html;
+
+  // Load trial history
+  const hr = await fetch(`${API}/api/patient/${patientId}/trial-history`);
+  const hd = await hr.json();
+  if (hd.history.length === 0) {
+    document.getElementById('modal-tab-history').innerHTML = '<div style="color:var(--text2);padding:20px;text-align:center">No trial screening history for this patient.</div>';
+  } else {
+    let hhtml = `<table class="an-table"><thead><tr><th>Date</th><th>Trial</th><th>Result</th><th>Items</th><th>Session</th></tr></thead><tbody>`;
+    hhtml += hd.history.map(h => `
+      <tr>
+        <td>${h.authored ? new Date(h.authored).toLocaleDateString() : '-'}</td>
+        <td>${h.trial_id || '-'}</td>
+        <td><span class="det-badge ${h.determination}">${h.determination || 'pending'}</span></td>
+        <td>${h.item_count}</td>
+        <td style="font-family:monospace;font-size:11px">${h.session_id||h.id.slice(0,8)}</td>
+      </tr>
+    `).join('');
+    hhtml += '</tbody></table>';
+    document.getElementById('modal-tab-history').innerHTML = hhtml;
+  }
+}
+
+function closePatientModal() { document.getElementById('patient-modal').style.display = 'none'; }
+
+function showModalTab(tab, btn) {
+  document.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('modal-tab-info').style.display = tab === 'info' ? 'block' : 'none';
+  document.getElementById('modal-tab-history').style.display = tab === 'history' ? 'block' : 'none';
+}
+
+// === Trial Detail Modal ===
+async function openTrialDetail(trialId) {
+  document.getElementById('trial-modal').style.display = 'flex';
+  document.getElementById('trial-modal-title').textContent = trialId;
+  ['overview','criteria','screenings','failures'].forEach(t => {
+    document.getElementById(`trial-tab-${t}`).innerHTML = '<div style="color:var(--text2);padding:20px;text-align:center">Loading...</div>';
+  });
+  showTrialTab('overview', document.querySelector('#trial-modal .modal-tab'));
+
+  const r = await fetch(`${API}/api/trial/${trialId}`);
+  const d = await r.json();
+
+  document.getElementById('trial-modal-title').textContent = `${d.trial_id} — ${d.title}`;
+
+  // Overview tab
+  const eligRate = d.total_screenings > 0 ? Math.round((d.by_determination.eligible / d.total_screenings) * 100) : 0;
+  document.getElementById('trial-tab-overview').innerHTML = `
+    <div class="info-grid">
+      <div class="info-card"><div class="label">Trial ID</div><div class="val">${d.trial_id}</div></div>
+      <div class="info-card"><div class="label">Phase</div><div class="val">${d.phase}</div></div>
+      <div class="info-card"><div class="label">Status</div><div class="val"><span class="det-badge eligible">${d.status}</span></div></div>
+      <div class="info-card"><div class="label">Created</div><div class="val">${d.created_at ? new Date(d.created_at).toLocaleDateString() : '-'}</div></div>
+      <div class="info-card"><div class="label">Conditions</div><div class="val">${(d.conditions||[]).join(', ')}</div></div>
+      <div class="info-card"><div class="label">Interventions</div><div class="val">${(d.interventions||[]).join(', ')}</div></div>
+      <div class="info-card"><div class="label">Blinding</div><div class="val">${d.blinding?.is_blinded ? 'Blinded' : 'Open-label'}</div></div>
+      <div class="info-card"><div class="label">Questionnaire Items</div><div class="val">${d.questionnaire_items}</div></div>
+    </div>
+    <div style="margin-top:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+      <div class="stat-card"><div class="stat-label">Total Screenings</div><div class="stat-value" style="font-size:22px">${d.total_screenings}</div></div>
+      <div class="stat-card" style="border-left:3px solid var(--green)"><div class="stat-label">Eligible</div><div class="stat-value" style="font-size:22px;color:var(--green)">${d.by_determination.eligible||0}</div></div>
+      <div class="stat-card" style="border-left:3px solid var(--red)"><div class="stat-label">Ineligible</div><div class="stat-value" style="font-size:22px;color:var(--red)">${d.by_determination.ineligible||0}</div></div>
+      <div class="stat-card" style="border-left:3px solid var(--yellow)"><div class="stat-label">Eligibility Rate</div><div class="stat-value" style="font-size:22px">${eligRate}%</div></div>
+    </div>
+    <div class="info-section"><h4>Terminology Versions</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${Object.entries(d.terminology_versions||{}).map(([k,v]) => `<span style="background:var(--surface2);padding:4px 10px;border-radius:4px;font-size:11px;">${k}: ${v}</span>`).join('')}
+      </div>
+    </div>
+  `;
+
+  // Criteria tab
+  const rules = d.eligibility_rules || [];
+  document.getElementById('trial-tab-criteria').innerHTML = rules.length === 0
+    ? '<div style="color:var(--text2);text-align:center;padding:20px">No eligibility rules configured</div>'
+    : rules.map(r => {
+        const color = r.type === 'inclusion' ? 'var(--green)' : r.type === 'exclusion' ? 'var(--red)' : 'var(--blue)';
+        return `<div style="background:var(--surface2);border-left:3px solid ${color};border-radius:4px;padding:10px 14px;margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="font-size:13px">${r.description || r.id}</span>
+            <span style="font-size:10px;color:${color};text-transform:uppercase">${r.type}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px">${r.id} · ${r.data_type || 'boolean'}${r.fhir_path ? ' · ' + r.fhir_path : ''}</div>
+        </div>`;
+      }).join('');
+
+  // Screenings tab
+  const scr = d.screenings || [];
+  document.getElementById('trial-tab-screenings').innerHTML = scr.length === 0
+    ? '<div style="color:var(--text2);text-align:center;padding:20px">No screenings yet</div>'
+    : `<table class="an-table"><thead><tr><th>Date</th><th>Patient</th><th>Result</th><th>Items</th><th>Session</th></tr></thead><tbody>
+      ${scr.map(s => `<tr>
+        <td>${s.authored ? new Date(s.authored).toLocaleDateString() + ' ' + new Date(s.authored).toLocaleTimeString() : '-'}</td>
+        <td><span style="font-family:monospace;font-size:11px;cursor:pointer;color:var(--accent2)" onclick="document.getElementById('trial-modal').style.display='none';openPatientModal('${s.patient_id}')">${s.patient_id.slice(0,12)}...</span></td>
+        <td><span class="det-badge ${s.determination}">${s.determination}</span></td>
+        <td>${s.item_count}</td>
+        <td style="font-family:monospace;font-size:11px">${s.session_id || s.id.slice(0,10)}</td>
+      </tr>`).join('')}
+      </tbody></table>`;
+
+  // Failure Analysis tab
+  const failures = d.top_failure_criteria || [];
+  const maxFail = failures.length > 0 ? failures[0][1] : 1;
+  document.getElementById('trial-tab-failures').innerHTML = failures.length === 0
+    ? '<div style="color:var(--text2);text-align:center;padding:20px">No failure data yet</div>'
+    : `<div style="font-size:12px;color:var(--text2);margin-bottom:12px">Most common reasons patients fail eligibility criteria:</div>
+      ${failures.map(([criterion, count]) => {
+        const pct = Math.round((count / maxFail) * 100);
+        return `<div style="margin-bottom:8px;">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;">
+            <span>${criterion}</span>
+            <span style="color:var(--red);font-weight:600">${count} failure${count>1?'s':''}</span>
+          </div>
+          <div style="background:var(--surface2);border-radius:3px;height:8px;overflow:hidden;">
+            <div style="background:var(--red);height:100%;width:${pct}%;border-radius:3px;transition:width 0.5s;"></div>
+          </div>
+        </div>`;
+      }).join('')}`;
+}
+
+function showTrialTab(tab, btn) {
+  document.querySelectorAll('#trial-modal .modal-tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  ['overview','criteria','screenings','failures'].forEach(t => {
+    document.getElementById(`trial-tab-${t}`).style.display = t === tab ? 'block' : 'none';
+  });
+}
+
+// === Trial Builder ===
+let builderSessionId = null;
+let builderItems = [];
+
+function showView(view) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('main-view').style.display = view === 'main' ? 'grid' : 'none';
+  document.getElementById('analytics-view').style.display = view === 'analytics' ? 'block' : 'none';
+  document.getElementById('builder-view').style.display = view === 'builder' ? 'block' : 'none';
+  if (view === 'analytics') loadAnalytics();
+  if (view === 'builder' && !builderSessionId) startBuilder();
+}
+
+async function startBuilder() {
+  const r = await fetch(`${API}/api/builder/start`, {method:'POST'});
+  const d = await r.json();
+  builderSessionId = d.session_id;
+  const chat = document.getElementById('builder-chat');
+  chat.innerHTML = '';
+  d.messages.forEach(m => addBuilderMsg('agent', m.content));
+  document.getElementById('builder-input').focus();
+}
+
+function addBuilderMsg(type, content) {
+  const chat = document.getElementById('builder-chat');
+  const div = document.createElement('div');
+  div.className = `chat-msg ${type}`;
+  // Render markdown-style bold
+  div.innerHTML = content.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/```json[\s\S]*?```/g, '<span style="color:var(--green);font-size:11px">[Trial details extracted ✓]</span>');
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+}
+
+async function builderSend() {
+  const input = document.getElementById('builder-input');
+  const msg = input.value.trim();
+  if (!msg || !builderSessionId) return;
+  input.value = '';
+  addBuilderMsg('agent', `<div style="text-align:right;color:var(--accent2)"><strong>You:</strong> ${msg}</div>`);
+
+  const r = await fetch(`${API}/api/builder/respond`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({session_id: builderSessionId, message: msg}),
+  });
+  const d = await r.json();
+  const agentMsgs = d.messages.filter(m => m.role === 'assistant');
+  agentMsgs.forEach(m => addBuilderMsg('agent', m.content));
+
+  if (d.status === 'review' && d.questionnaire_items) {
+    builderItems = d.questionnaire_items;
+    renderQuestionnaireEditor(builderItems, d.extracted);
+    addBuilderMsg('system', 'Trial details extracted! Review and edit the questionnaire on the right, then click <strong>Create Trial</strong>.');
+  }
+}
+
+function renderQuestionnaireEditor(items, extracted) {
+  const editor = document.getElementById('builder-editor');
+  document.getElementById('q-item-count').textContent = items.length;
+  document.getElementById('builder-create-btn').disabled = false;
+  document.getElementById('builder-create-btn').style.opacity = '1';
+
+  let html = '';
+  if (extracted) {
+    html += `<div style="background:var(--surface2);border-radius:8px;padding:12px 16px;margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:600">${extracted.title || 'New Trial'}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:4px">${extracted.phase || ''} · ${(extracted.conditions||[]).join(', ')}</div>
+      <div style="font-size:12px;color:var(--text2);margin-top:2px">Interventions: ${(extracted.interventions||[]).join(', ')}</div>
+    </div>`;
+  }
+
+  html += '<div style="font-size:11px;color:var(--text2);text-transform:uppercase;margin-bottom:8px;">Questionnaire Items</div>';
+  items.forEach((item, i) => {
+    const isStd = item.linkId.startsWith('STD-');
+    const catColor = item.category === 'inclusion' ? 'var(--green)' : item.category === 'exclusion' ? 'var(--red)' : 'var(--blue)';
+    html += `<div class="q-item" id="q-item-${i}" style="background:var(--surface2);border-radius:6px;padding:10px 14px;margin-bottom:6px;border-left:3px solid ${catColor};display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" checked onchange="toggleQItem(${i},this.checked)" style="flex-shrink:0;">
+      <div style="flex:1;min-width:0;">
+        <div contenteditable="true" style="font-size:13px;outline:none;border-bottom:1px solid transparent;" onfocus="this.style.borderBottomColor='var(--accent)'" onblur="this.style.borderBottomColor='transparent';updateQItemText(${i},this.textContent)">${item.text}</div>
+        <div style="font-size:10px;color:var(--text2);margin-top:2px;">
+          <span style="color:${catColor}">${item.category||'general'}</span> · ${item.type} · ${item.linkId}
+          ${isStd ? ' · <span style="color:var(--cyan)">standard</span>' : ''}
+          ${item.source === 'from-protocol' ? ' · <span style="color:var(--accent2)">from protocol</span>' : ''}
+        </div>
+      </div>
+    </div>`;
+  });
+
+  editor.innerHTML = html;
+}
+
+function toggleQItem(idx, checked) {
+  builderItems[idx]._excluded = !checked;
+  const el = document.getElementById(`q-item-${idx}`);
+  if (el) el.style.opacity = checked ? '1' : '0.3';
+}
+
+function updateQItemText(idx, text) {
+  builderItems[idx].text = text;
+}
+
+async function builderCreate() {
+  const btn = document.getElementById('builder-create-btn');
+  btn.disabled = true;
+  btn.textContent = 'Creating...';
+
+  const approved = builderItems.filter(it => !it._excluded);
+  const r = await fetch(`${API}/api/builder/create`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({session_id: builderSessionId, approved_items: approved}),
+  });
+  const d = await r.json();
+
+  if (d.status === 'created') {
+    btn.textContent = '✓ Trial Created';
+    btn.style.background = 'var(--green)';
+    addBuilderMsg('system', `Trial <strong>${d.trial_id}</strong> created successfully with ${d.questionnaire_items} questionnaire items. You can now use it for patient screening.`);
+    // Refresh trials list
+    loadTrials();
+  } else {
+    btn.textContent = 'Failed — Retry';
+    btn.disabled = false;
+    btn.style.background = 'var(--red)';
+    addBuilderMsg('error', `Failed to create trial: ${d.error || 'Unknown error'}`);
+  }
+}
+
+document.getElementById('builder-input').addEventListener('keydown', e => { if (e.key === 'Enter') builderSend(); });
+</script>
+</body>
+</html>

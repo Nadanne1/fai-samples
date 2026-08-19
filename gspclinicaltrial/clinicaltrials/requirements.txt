@@ -1,0 +1,10 @@
+boto3>=1.39.7,<2.0.0
+requests>=2.31.0,<3.0.0
+fastapi>=0.115.0,<1.0.0
+uvicorn>=0.30.0,<1.0.0
+mangum>=0.17.0,<1.0.0
+langchain-core>=0.3.0,<0.4.0
+langchain-aws>=0.2.0,<0.3.0
+langsmith>=0.2.0,<0.3.0
+langgraph>=0.3.0,<0.4.0
+pydantic>=2.0.0,<3.0.0

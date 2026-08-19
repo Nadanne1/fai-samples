@@ -1,0 +1,28 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.main {
+  flex: 1;
+  overflow: hidden;
+}
+
+.screening-layout {
+  display: grid;
+  grid-template-columns: 240px 1fr 440px;
+  height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 1024px) {
+  .screening-layout {
+    grid-template-columns: 280px 1fr;
+  }
+
+  .screening-layout > aside:last-child {
+    display: none;
+  }
+}

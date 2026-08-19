@@ -1,0 +1,58 @@
+# ── Python ────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.hypothesis/
+.venv/
+venv/
+env/
+
+# ── Node ──────────────────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+
+# ── AWS CDK ─────────────────────────────────────────────────────────────────
+cdk.out/
+*.cdk.staging/
+cdk.context.json
+
+# ── Build artifacts ─────────────────────────────────────────────────────────
+*.zip
+
+# ── Secrets & local config (never commit) ───────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+id_rsa*
+id_ecdsa*
+id_ed25519*
+
+# ── OS / editor ──────────────────────────────────────────────────────────────
+.DS_Store
+*.swp
+.idea/
+.kiro/
+.vscode/
+
+# ── Generated output logs ────────────────────────────────────────────────────
+infra/run_insights_results.json
+infra/refresh_insights_results.json
+
+# ── Root-level test/scratch files ───────────────────────────────────────────
+test-*.py
+test-*.json
+
+# ── Legacy prototype directories (not part of this project) ──────────────────
+1-questionnaire-management/
+1.5-patient-data-bulk-load/
+1.6-patient-list-webapp/
+1.7-clinical-summary-agent/
+1.10-redesigned-agent/
+archive/
+aws-workshops/
+flow-tracker/
+requirements/

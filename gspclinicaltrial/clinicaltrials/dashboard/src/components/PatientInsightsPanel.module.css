@@ -1,0 +1,193 @@
+/* ── Panel shell ─────────────────────────────────────────────────────────── */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.compact {
+  padding: 12px 14px;
+  gap: 8px;
+}
+
+/* ── States ──────────────────────────────────────────────────────────────── */
+.stateRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text3);
+  padding: 8px 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.iconMuted {
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+/* ── AI badge ────────────────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--accent-text);
+  background: var(--accent-light);
+  border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+  border-radius: var(--radius-full);
+  padding: 3px 10px;
+  align-self: flex-start;
+}
+
+.badgeDate {
+  color: var(--text3);
+  font-weight: 400;
+}
+
+/* ── Section list ────────────────────────────────────────────────────────── */
+.sections {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── Card ────────────────────────────────────────────────────────────────── */
+.card {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.cardIcon {
+  display: flex;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.cardLabel {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cardBody {
+  padding: 10px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+/* ── Section color themes ────────────────────────────────────────────────── */
+.overview .cardHeader {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border-bottom: 1px solid #dbeafe;
+}
+.changes .cardHeader {
+  color: #15803d;
+  background: #f0fdf4;
+  border-bottom: 1px solid #bbf7d0;
+}
+.trends .cardHeader {
+  color: #b45309;
+  background: #fffbeb;
+  border-bottom: 1px solid #fde68a;
+}
+.meds .cardHeader {
+  color: #7e22ce;
+  background: #faf5ff;
+  border-bottom: 1px solid #e9d5ff;
+}
+
+[data-theme="dark"] .overview .cardHeader {
+  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.08);
+  border-bottom-color: rgba(59, 130, 246, 0.2);
+}
+[data-theme="dark"] .changes .cardHeader {
+  color: #86efac;
+  background: rgba(34, 197, 94, 0.08);
+  border-bottom-color: rgba(34, 197, 94, 0.2);
+}
+[data-theme="dark"] .trends .cardHeader {
+  color: #fcd34d;
+  background: rgba(234, 179, 8, 0.08);
+  border-bottom-color: rgba(234, 179, 8, 0.2);
+}
+[data-theme="dark"] .meds .cardHeader {
+  color: #d8b4fe;
+  background: rgba(168, 85, 247, 0.08);
+  border-bottom-color: rgba(168, 85, 247, 0.2);
+}
+
+/* ── Body text ───────────────────────────────────────────────────────────── */
+.subheading {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-top: 6px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--border);
+}
+
+.subheading:first-child {
+  margin-top: 0;
+}
+
+.bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.55;
+}
+
+.dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--text3);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+.prose {
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ── Inline clinical value markup (scoped via style attribute) ───────────── */
+/* These classes are injected via dangerouslySetInnerHTML — keep them global  */
+:global(.hl-num)  { color: var(--blue);   font-weight: 600; }
+:global(.hl-flag) { color: var(--red);    font-weight: 600; }
+:global(.hl-bad)  { color: var(--red);    font-weight: 500; }
+:global(.hl-good) { color: var(--green);  font-weight: 500; }
