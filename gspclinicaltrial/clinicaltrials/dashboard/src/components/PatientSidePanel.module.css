@@ -1,0 +1,252 @@
+/* ── Panel shell ─────────────────────────────────────────────────────────── */
+.panel {
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* ── Patient header ──────────────────────────────────────────────────────── */
+.patientHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.patientAvatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  font-size: 15px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.patientMeta {
+  min-width: 0;
+  flex: 1;
+}
+
+.patientName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.patientSub {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 1px;
+}
+
+.noPatient {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  color: var(--text3);
+  flex-shrink: 0;
+}
+
+.noPatientIcon {
+  color: var(--border-strong);
+}
+
+/* ── Tab bar ─────────────────────────────────────────────────────────────── */
+.tabBar {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface);
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 8px 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text3);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-family: inherit;
+}
+
+.tab:hover {
+  color: var(--text2);
+  background: var(--surface2);
+}
+
+.tabActive {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+  background: var(--surface);
+}
+
+/* ── Tab content ─────────────────────────────────────────────────────────── */
+.tabContent {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+/* ── Shared state row ────────────────────────────────────────────────────── */
+.stateRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 14px;
+  font-size: 12px;
+  color: var(--text3);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  animation: spin 1s linear infinite;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* ── Clinical tab ────────────────────────────────────────────────────────── */
+.clinicalWrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.demoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  background: var(--border);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.demoCell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 9px 12px;
+  background: var(--surface);
+}
+
+.demoLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text3);
+}
+
+.demoVal {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.clinSection {
+  border-bottom: 1px solid var(--border);
+}
+
+.clinSectionHeader {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  color: var(--text2);
+  transition: background 0.1s;
+}
+
+.clinSectionHeader:hover {
+  background: var(--surface2);
+}
+
+.clinSectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex: 1;
+}
+
+.clinSectionCount {
+  font-size: 11px;
+  color: var(--text3);
+  background: var(--surface2);
+  border-radius: var(--radius-full);
+  padding: 1px 7px;
+  font-weight: 500;
+}
+
+.clinSectionBody {
+  padding: 6px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.clinEmpty {
+  font-size: 11px;
+  color: var(--text3);
+  padding: 2px 0;
+}
+
+.clinItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.clinDot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border-strong);
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+/* ── Trace tab ────────────────────────────────────────────────────────────── */
+.traceWrap {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}

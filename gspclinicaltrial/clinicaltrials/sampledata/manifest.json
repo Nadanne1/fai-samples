@@ -1,0 +1,14 @@
+{
+  "exported_at": "2026-07-17T17:31:42.537221+00:00",
+  "datastore_id": "385610836c26d712d212b430cfdccd18",
+  "region": "us-east-1",
+  "files": {
+    "Patient.ndjson": 58,
+    "Condition.ndjson": 66,
+    "Observation.ndjson": 75,
+    "MedicationRequest.ndjson": 66,
+    "DocumentReference.ndjson": 0,
+    "DocumentReference.insights.ndjson": 98,
+    "Questionnaire.ndjson": 6
+  }
+}
